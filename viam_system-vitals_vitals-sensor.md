@@ -53,7 +53,7 @@ effort and never produce errors.
 | `memory`      | `total_bytes`, `available_bytes`, `used_bytes`, `used_percent`, `free_bytes`, `swap_total_bytes`, `swap_used_bytes`, `swap_used_percent` |
 | `disk`        | One entry per configured path: `total_bytes`, `used_bytes`, `free_bytes`, `used_percent`, `inodes_used_percent`, `fstype` |
 | `network`     | One entry per interface: `bytes_sent`, `bytes_recv`, `packets_sent`, `packets_recv`, `err_in`, `err_out`, `drop_in`, `drop_out` |
-| `temperature` | Sensor key to degrees Celsius (Linux only) |
+| `temperature` | Sensor key to degrees Celsius. Sensors that read 0 or an implausible value are dropped, and the group is omitted when none remain (for example on Apple Silicon, where gopsutil can only query Intel-era SMC keys). |
 | `viam_server` | `pid`, `name`, `exe`, `status`, `cpu_percent`, `user_cpu_seconds`, `system_cpu_seconds`, `rss_bytes`, `vms_bytes`, `memory_percent`, `num_threads`, `num_fds` (Linux), `num_children` (running module processes), `create_time_unix_ms`, `uptime_seconds` |
 | `module`      | Same process fields for this module's own process, plus `goroutines` and `go_version` |
 | `machine`     | `machine_id`, `machine_part_id`, `machine_fqdn`, `location_id`, `primary_org_id`, `module_name`, `module_id`, `viam_home`, `module_data_dir` (only keys with a value) |

@@ -2,6 +2,7 @@ package systemvitals
 
 import (
 	"context"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/host"
 	sensor "go.viam.com/rdk/components/sensor"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/protoutils"
@@ -179,5 +181,21 @@ func TestDoCommandCustomControl(t *testing.T) {
 	}
 	if p, _ := out["path"].(string); p != "vitals_ui/dist/index.html" {
 		t.Errorf("path = %q", p)
+	}
+}
+
+func TestUsableTemperatures(t *testing.T) {
+	got := usableTemperatures([]host.TemperatureStat{
+		{SensorKey: "cpu_thermal", Temperature: 48.2},
+		{SensorKey: "TC0P", Temperature: 0},     // unreadable SMC key
+		{SensorKey: "", Temperature: 30},        // unnamed
+		{SensorKey: "bogus", Temperature: 1200}, // implausible
+		{SensorKey: "nan", Temperature: math.NaN()},
+	})
+	if len(got) != 1 || got["cpu_thermal"] != 48.2 {
+		t.Errorf("usableTemperatures = %v, want only cpu_thermal", got)
+	}
+	if usableTemperatures([]host.TemperatureStat{{SensorKey: "TC0P"}, {SensorKey: "TC1P"}}) != nil {
+		t.Error("all-zero readings should yield nil so the group is omitted")
 	}
 }

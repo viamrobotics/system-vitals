@@ -3,6 +3,7 @@ package systemvitals
 import (
 	"context"
 	"errors"
+	"math"
 	"os"
 	"runtime"
 	"strings"
@@ -227,15 +228,28 @@ func networkGroup(ctx context.Context) (map[string]interface{}, error) {
 // temperatureGroup is best effort: unsupported platforms return nil.
 func temperatureGroup(ctx context.Context) map[string]interface{} {
 	temps, err := host.SensorsTemperaturesWithContext(ctx)
-	if err != nil || len(temps) == 0 {
+	if err != nil {
 		return nil
 	}
+	return usableTemperatures(temps)
+}
+
+// usableTemperatures keeps only readings a real sensor could have produced. gopsutil reports
+// 0 for sensors it cannot read (on Apple Silicon every SMC key it knows is an Intel one, so all
+// come back 0; on Linux a disconnected hwmon channel reads 0 too), and nothing viam-server runs
+// on sits at exactly 0.000 °C. Returns nil when no reading survives so the group is omitted.
+func usableTemperatures(temps []host.TemperatureStat) map[string]interface{} {
+	const maxPlausibleCelsius = 200
 	out := map[string]interface{}{}
 	for _, t := range temps {
-		if t.SensorKey == "" {
+		if t.SensorKey == "" || t.Temperature <= 0 || t.Temperature > maxPlausibleCelsius ||
+			math.IsNaN(t.Temperature) {
 			continue
 		}
 		out[t.SensorKey] = t.Temperature
+	}
+	if len(out) == 0 {
+		return nil
 	}
 	return out
 }

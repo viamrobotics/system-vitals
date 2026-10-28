@@ -16,8 +16,11 @@
   import { flattenReadings, parseVitals, type Readings, type Vitals } from './lib/vitals';
 
   const POLL_MS = 2000;
-  const MAX_SAMPLES = 91; // 3 minutes at POLL_MS
-  const WINDOW_SECONDS = (MAX_SAMPLES - 1) * (POLL_MS / 1000);
+  // The chart window is time-based. The sample cap only guards memory if the host polls far
+  // faster than POLL_MS (it does poll about once a second), so size it for several polls a second.
+  const WINDOW_SECONDS = 180;
+  const MAX_POLLS_PER_SECOND = 4;
+  const MAX_SAMPLES = WINDOW_SECONDS * MAX_POLLS_PER_SECOND;
   const PERCENT_MAX = 100;
   const SWAP_WARN = 50;
   const SWAP_CRITICAL = 80;

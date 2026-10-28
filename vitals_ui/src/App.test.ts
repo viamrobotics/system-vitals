@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
+  bridge: { status: 'connected' as string, error: undefined as { message: string } | undefined },
   query: {
     data: undefined as Record<string, unknown> | undefined,
     error: undefined as { message: string } | undefined,
@@ -13,7 +14,7 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock('@viamrobotics/post-message-sdk/svelte', () => ({
-  useBridge: () => ({ status: 'connected', resourceName: 'vitals', error: undefined }),
+  useBridge: () => ({ ...state.bridge, resourceName: 'vitals' }),
   createResourceClient: () => ({ current: {}, name: 'vitals' }),
   createResourceQuery: () => state.query,
 }));
@@ -60,10 +61,40 @@ const sampleReadings = (): Record<string, unknown> => ({
 
 describe('App', () => {
   beforeEach(() => {
+    state.bridge.status = 'connected';
+    state.bridge.error = undefined;
     state.query.data = undefined;
     state.query.error = undefined;
     state.query.isLoading = false;
+    state.query.isFetching = false;
     state.query.isError = false;
+  });
+
+  it('keeps the dashboard mounted while a refetch or reconnect is in flight', () => {
+    state.query.data = sampleReadings();
+    state.query.isFetching = true;
+    state.query.isLoading = true;
+    state.bridge.status = 'connecting';
+    render(App);
+    expect(screen.queryByText('Loading vitals…')).toBeNull();
+    expect(screen.queryByText('Connecting to the machine…')).toBeNull();
+    expect(screen.getByRole('region', { name: 'Headline vitals' })).toBeTruthy();
+    expect(screen.getByRole('status', { name: 'Updating' })).toBeTruthy();
+  });
+
+  it('keeps the last readings and shows a warning when a poll fails', () => {
+    state.query.data = sampleReadings();
+    state.query.isError = true;
+    state.query.error = { message: 'timeout' };
+    render(App);
+    expect(screen.getByRole('region', { name: 'Headline vitals' })).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toContain('timeout');
+  });
+
+  it('shows the loading placeholder only before the first readings arrive', () => {
+    state.query.isLoading = true;
+    render(App);
+    expect(screen.getByText('Loading vitals…')).toBeTruthy();
   });
 
   it('renders headline tiles, capacity and identity from the readings', () => {

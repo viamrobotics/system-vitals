@@ -13,7 +13,7 @@
   import StatTile from './components/StatTile.svelte';
   import { fmtBytes, fmtCompact, fmtDuration, fmtNumber, fmtPercent, fmtRate } from './lib/format';
   import { History } from './lib/history.svelte';
-  import { flattenReadings, parseVitals, type Readings } from './lib/vitals';
+  import { flattenReadings, parseVitals, type Readings, type Vitals } from './lib/vitals';
 
   const POLL_MS = 2000;
   const MAX_SAMPLES = 91; // 3 minutes at POLL_MS
@@ -34,18 +34,36 @@
   let lastData: Readings | undefined;
   let updatedAt = $state<number | undefined>(undefined);
 
-  const vitals = $derived(readings.data ? parseVitals(readings.data) : undefined);
-  const hasData = $derived(readings.data !== undefined && Object.keys(readings.data).length > 0);
+  // The last good readings. Once set, the dashboard stays mounted through refetches, transient
+  // bridge reconnects and failed polls; only the header indicator changes.
+  let raw = $state<Readings | undefined>(undefined);
+  let vitals = $state<Vitals | undefined>(undefined);
 
   $effect(() => {
     const data = readings.data;
-    if (!data || data === lastData || !vitals) return;
+    if (!data || data === lastData || Object.keys(data).length === 0) return;
     lastData = data;
-    history.push(vitals);
+    const parsed = parseVitals(data);
+    raw = data;
+    vitals = parsed;
+    history.push(parsed);
     updatedAt = Date.now();
   });
 
   const points = $derived(history.points);
+  const sawEmpty = $derived(readings.data !== undefined && Object.keys(readings.data).length === 0);
+  const updating = $derived(
+    readings.isFetching || readings.isLoading || bridge.status === 'connecting',
+  );
+  const problem = $derived.by(() => {
+    if (bridge.status === 'error') {
+      return `Lost the machine connection: ${bridge.error?.message ?? 'unknown error'}`;
+    }
+    if (readings.isError) {
+      return `Last poll failed: ${readings.error?.message ?? 'unknown error'}`;
+    }
+    return undefined;
+  });
 
   const cpuSeries: Series[] = [
     { key: 'cpu', label: 'Host', color: HOST },
@@ -65,7 +83,7 @@
 
   const hasNetwork = $derived((vitals?.interfaces.length ?? 0) > 0);
   const hasLoad = $derived(vitals?.load.load1 !== undefined);
-  const rows = $derived(readings.data ? flattenReadings(readings.data) : []);
+  const rows = $derived(raw ? flattenReadings(raw) : []);
 
   const hostLine = $derived.by(() => {
     if (!vitals) return '';
@@ -91,35 +109,34 @@
       {#if vitals?.host.uptimeSeconds !== undefined}
         <span class="vz-ink-2 text-xs">up {fmtDuration(vitals.host.uptimeSeconds)}</span>
       {/if}
-      {#if bridge.status === 'connected'}
-        <Badge variant="success" label="Connected" />
-      {:else if bridge.status === 'connecting'}
+      <span
+        class="vz-dot"
+        class:vz-dot-active={updating}
+        role="status"
+        aria-live="off"
+        aria-label={updating ? 'Updating' : 'Idle'}
+        title={updating ? 'Updating…' : 'Up to date'}
+      ></span>
+      {#if bridge.status === 'error' || (readings.isError && !vitals)}
+        <Badge variant="danger" label="Error" />
+      {:else if bridge.status === 'connecting' && !vitals}
         <Badge variant="pending" label="Connecting" />
       {:else}
-        <Badge variant="danger" label="Error" />
+        <Badge variant="success" label="Connected" />
       {/if}
     </div>
   </header>
 
-  {#if bridge.status === 'connecting'}
-    <p role="status" class="vz-ink-2">Connecting to the machine…</p>
-  {:else if bridge.status === 'error'}
-    <p role="alert" class="text-danger-dark">
-      Could not connect: {bridge.error?.message ?? 'unknown error'}
+  {#if problem && vitals}
+    <p role="alert" class="vz-card border-warning-dark px-3 py-2 text-xs text-warning-dark">
+      {problem} Showing the last readings.
     </p>
-  {:else if readings.isError}
-    <p role="alert" class="text-danger-dark">
-      Could not read the sensor: {readings.error?.message ?? 'unknown error'}
-    </p>
-  {:else if readings.isLoading}
-    <p role="status" class="vz-ink-2">Loading vitals…</p>
-  {:else if !hasData || !vitals}
-    <p class="vz-ink-2">This sensor returned no readings.</p>
-  {:else}
+  {/if}
+
+  {#if vitals}
     <!-- Headline numbers -->
     <section
       class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
-      style:opacity={readings.isFetching ? 0.85 : 1}
       aria-label="Headline vitals"
     >
       <StatTile
@@ -341,6 +358,20 @@
         </tbody>
       </table>
     </details>
+  {:else if bridge.status === 'error'}
+    <p role="alert" class="text-danger-dark">
+      Could not connect: {bridge.error?.message ?? 'unknown error'}
+    </p>
+  {:else if readings.isError}
+    <p role="alert" class="text-danger-dark">
+      Could not read the sensor: {readings.error?.message ?? 'unknown error'}
+    </p>
+  {:else if bridge.status === 'connecting'}
+    <p role="status" class="vz-ink-2">Connecting to the machine…</p>
+  {:else if sawEmpty}
+    <p class="vz-ink-2">This sensor returned no readings.</p>
+  {:else}
+    <p role="status" class="vz-ink-2">Loading vitals…</p>
   {/if}
 
   <footer class="flex items-center justify-between gap-2">

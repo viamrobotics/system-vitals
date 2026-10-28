@@ -1,0 +1,67 @@
+@import 'tailwindcss';
+@import '@viamrobotics/tailwind-config';
+@source '../node_modules/@viamrobotics/prime-core/dist';
+
+/*
+ * Chart and card tokens. Light values are the default; the dark set applies only under a `.dark`
+ * ancestor so the control never flips on its own while the host app is light.
+ */
+:root {
+  color-scheme: light;
+  --vz-surface: #fcfcfb;
+  --vz-plane: #f9f9f7;
+  --vz-ink: #0b0b0b;
+  --vz-ink-2: #52514e;
+  --vz-muted: #898781;
+  --vz-grid: #e1e0d9;
+  --vz-axis: #c3c2b7;
+  --vz-border: rgba(11, 11, 11, 0.1);
+  --vz-s1: #2a78d6;
+  --vz-s2: #eb6834;
+  --vz-s3: #1baf7a;
+  --vz-track: #cde2fb;
+  --vz-good: #0ca30c;
+  --vz-warning: #fab219;
+  --vz-serious: #ec835a;
+  --vz-critical: #d03b3b;
+}
+.dark {
+  color-scheme: dark;
+  --vz-surface: #1a1a19;
+  --vz-plane: #0d0d0d;
+  --vz-ink: #f0efec;
+  --vz-ink-2: #c3c2b7;
+  --vz-muted: #898781;
+  --vz-grid: #2c2c2a;
+  --vz-axis: #383835;
+  --vz-border: rgba(255, 255, 255, 0.1);
+  --vz-s1: #3987e5;
+  --vz-s2: #d95926;
+  --vz-s3: #199e70;
+  --vz-track: #184f95;
+}
+
+body {
+  background: var(--vz-plane);
+  color: var(--vz-ink);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+.vz-card {
+  background: var(--vz-surface);
+  border: 1px solid var(--vz-border);
+  border-radius: 6px;
+}
+.vz-ink-2 {
+  color: var(--vz-ink-2);
+}
+.vz-muted {
+  color: var(--vz-muted);
+}
+.vz-tabular {
+  font-variant-numeric: tabular-nums;
+}

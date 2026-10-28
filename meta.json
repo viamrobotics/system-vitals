@@ -1,0 +1,27 @@
+{
+  "$schema": "https://dl.viam.dev/module.schema.json",
+  "module_id": "viam:system-vitals",
+  "visibility": "public",
+  "url": "https://github.com/viamrobotics/system-vitals",
+  "description": "A module for getting health metrics from the system `viam-server` is running on.",
+  "applications": null,
+  "markdown_link": "README.md",
+  "models": [
+    {
+      "api": "rdk:component:sensor",
+      "model": "viam:system-vitals:vitals-sensor",
+      "short_description": "Host and viam-server health metrics as nested sensor readings.",
+      "markdown_link": "viam_system-vitals_vitals-sensor.md",
+      "custom_control": "vitals_ui/dist/index.html"
+    }
+  ],
+  "entrypoint": "bin/system-vitals",
+  "first_run": "",
+  "build": {
+    "build": "make module.tar.gz",
+    "setup": "./setup.sh",
+    "path": "module.tar.gz",
+    "darwin_deps": ["go", "node", "pnpm"],
+    "arch": ["linux/amd64", "linux/arm64", "darwin/arm64"]
+  }
+}

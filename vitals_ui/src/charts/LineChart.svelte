@@ -7,6 +7,7 @@
   import Crosshair from './Crosshair.svelte';
   import GridY from './GridY.svelte';
   import Lines from './Lines.svelte';
+  import PlotClip from './PlotClip.svelte';
   import type { Formatter, Series } from './types';
 
   interface Props {
@@ -35,6 +36,8 @@
   }: Props = $props();
 
   const PADDING = { top: 10, right: 14, bottom: 22, left: 44 };
+  const uid = $props.id();
+  const clipId = `plot-${uid}`;
   const MIN_POINTS = 2;
   const keys = $derived(series.map((s) => s.key));
   const ready = $derived(points.length >= MIN_POINTS);
@@ -75,13 +78,14 @@
         padding={PADDING}
       >
         <Svg label={title}>
+          <PlotClip id={clipId} />
           <GridY />
           <AxisY format={axisFormat} />
           <AxisX />
           {#if single}
-            <Area series={single} />
+            <Area series={single} {clipId} />
           {/if}
-          <Lines {series} />
+          <Lines {series} {clipId} />
         </Svg>
         <Html>
           <Crosshair {series} {format} />

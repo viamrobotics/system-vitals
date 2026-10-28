@@ -4,7 +4,7 @@
   import type { Point } from '../lib/history.svelte';
   import type { Series } from './types';
 
-  let { series }: { series: Series } = $props();
+  let { series, clipId }: { series: Series; clipId?: string } = $props();
 
   const k = getLayerCakeContext();
   const WASH_OPACITY = 0.1;
@@ -20,4 +20,9 @@
   });
 </script>
 
-<path d={path} fill={series.color} fill-opacity={WASH_OPACITY} />
+<path
+  d={path}
+  fill={series.color}
+  fill-opacity={WASH_OPACITY}
+  clip-path={clipId ? `url(#${clipId})` : undefined}
+/>

@@ -4,7 +4,7 @@
   import type { Point } from '../lib/history.svelte';
   import type { Series } from './types';
 
-  let { series }: { series: Series[] } = $props();
+  let { series, clipId }: { series: Series[]; clipId?: string } = $props();
 
   const k = getLayerCakeContext();
   const STROKE = 2;
@@ -30,7 +30,7 @@
   };
 </script>
 
-<g class="lines">
+<g class="lines" clip-path={clipId ? `url(#${clipId})` : undefined}>
   {#each series as s (s.key)}
     <path
       d={pathFor(s)}

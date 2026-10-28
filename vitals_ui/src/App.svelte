@@ -30,7 +30,7 @@
   const sensor = createResourceClient<SensorClient>();
   const readings = createResourceQuery(sensor, 'getReadings', { refetchInterval: POLL_MS });
 
-  const history = new History(MAX_SAMPLES);
+  const history = new History(MAX_SAMPLES, WINDOW_SECONDS);
   let lastData: Readings | undefined;
   let updatedAt = $state<number | undefined>(undefined);
 

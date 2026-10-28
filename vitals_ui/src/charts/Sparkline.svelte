@@ -14,6 +14,8 @@
   let { points, key, color, windowSeconds, max = null }: Props = $props();
 
   const MIN_POINTS = 2;
+  const uid = $props.id();
+  const clipId = `spark-${uid}`;
   const HEIGHT = 28;
   const PADDING = { top: 3, right: 3, bottom: 3, left: 0 };
   const ready = $derived(points.length >= MIN_POINTS);
@@ -31,6 +33,9 @@
     >
       {#snippet children(k)}
         <Svg>
+          <clipPath id={clipId}>
+            <rect x="0" y="-3" width={k.width + 3} height={k.height + 6} />
+          </clipPath>
           {@const gen = line<Point>()
             .defined((d) => d[key] !== undefined)
             .x((d) => k.xGet(d) as number)
@@ -43,6 +48,7 @@
             stroke-width="1.5"
             stroke-linejoin="round"
             stroke-linecap="round"
+            clip-path="url(#{clipId})"
           />
         </Svg>
       {/snippet}

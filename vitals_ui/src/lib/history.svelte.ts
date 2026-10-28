@@ -22,14 +22,18 @@ export type SeriesKey = Exclude<keyof Sample, 't'>;
 const BYTES_PER_MB = 1024 * 1024;
 const MS_PER_SECOND = 1000;
 
-/** Rolling window of samples; the latest is at the end. */
+/** Rolling window of samples; the latest is at the end. Samples older than `windowSeconds`
+ * are dropped as well as any beyond `max`, so nothing plots left of the chart's x-domain even
+ * when polls arrive more slowly than planned. */
 export class History {
   samples = $state<Sample[]>([]);
   readonly max: number;
+  readonly windowSeconds: number;
   #lastTraffic: { t: number; rx: number; tx: number } | undefined;
 
-  constructor(max: number) {
+  constructor(max: number, windowSeconds: number) {
     this.max = max;
+    this.windowSeconds = windowSeconds;
   }
 
   push(v: Vitals, t = Date.now()): void {
@@ -59,7 +63,8 @@ export class History {
       rxRate,
       txRate,
     };
-    const next = [...this.samples, sample];
+    const oldest = t - this.windowSeconds * MS_PER_SECOND;
+    const next = [...this.samples.filter((s) => s.t >= oldest), sample];
     this.samples = next.length > this.max ? next.slice(next.length - this.max) : next;
   }
 

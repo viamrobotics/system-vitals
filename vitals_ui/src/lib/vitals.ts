@@ -88,17 +88,19 @@ const parseProcess = (p: Obj | undefined): ProcessVitals | undefined =>
     uptimeSeconds: num(p.uptime_seconds),
   };
 
-const MACHINE_LABELS: Record<string, string> = {
-  machine_fqdn: 'FQDN',
-  machine_id: 'Machine ID',
-  machine_part_id: 'Part ID',
-  location_id: 'Location ID',
-  primary_org_id: 'Org ID',
-  module_name: 'Module',
-  module_id: 'Module ID',
-  viam_home: 'Viam home',
-  module_data_dir: 'Module data',
-};
+/** Display order and labels for the machine group. Readings arrive as a protobuf map, so the
+ * order must be fixed here or the rows shuffle on every poll. */
+const MACHINE_FIELDS: [key: string, label: string][] = [
+  ['machine_fqdn', 'FQDN'],
+  ['machine_id', 'Machine ID'],
+  ['machine_part_id', 'Part ID'],
+  ['location_id', 'Location ID'],
+  ['primary_org_id', 'Org ID'],
+  ['module_name', 'Module'],
+  ['module_id', 'Module ID'],
+  ['viam_home', 'Viam home'],
+  ['module_data_dir', 'Module data'],
+];
 
 export function parseVitals(r: Readings): Vitals {
   const host = obj(r.host) ?? {};
@@ -142,15 +144,22 @@ export function parseVitals(r: Readings): Vitals {
     })
     .sort((a, b) => b.celsius - a.celsius);
 
-  const machine = Object.entries(obj(r.machine) ?? {}).flatMap(([key, v]) => {
-    const value = str(v);
-    return value === undefined ? [] : [{ label: MACHINE_LABELS[key] ?? key, value }];
+  const machineRaw = obj(r.machine) ?? {};
+  const known = new Set(MACHINE_FIELDS.map(([key]) => key));
+  const machine = [
+    ...MACHINE_FIELDS.map(([key, label]) => [key, label] as const),
+    ...Object.keys(machineRaw)
+      .filter((key) => !known.has(key))
+      .sort()
+      .map((key) => [key, key] as const),
+  ].flatMap(([key, label]) => {
+    const value = str(machineRaw[key]);
+    return value === undefined ? [] : [{ label, value }];
   });
 
-  const errors = Object.entries(obj(r.errors) ?? {}).map(([group, v]) => ({
-    group,
-    message: typeof v === 'string' ? v : JSON.stringify(v),
-  }));
+  const errors = Object.entries(obj(r.errors) ?? {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([group, v]) => ({ group, message: typeof v === 'string' ? v : JSON.stringify(v) }));
 
   return {
     host: {

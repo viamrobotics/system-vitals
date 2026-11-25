@@ -204,7 +204,7 @@ require (
 	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
-	go.viam.com/api v0.1.607 // indirect
+	go.viam.com/api v0.1.610 // indirect
 	go.viam.com/test v1.2.5 // indirect
 	go.viam.com/utils v0.17.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
